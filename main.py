@@ -698,9 +698,10 @@ class NeeqInfo():
                 title = row['titleFull']
                 date = row['uploadTimeString']
                 link_add = 'http://file.neeq.com.cn/upload'+row['filePath']
-                row = (code, title, date, link_add)
-                sql = "insert into "+ self.tb +" (code, title, date, link_add) values (%s, %s, %s, %s)"
-                sql_chk = "select `id` from %s where link_add = '%s'" %(self.tb, link_add)
+                stamp = row['filePath'][-21:-11]
+                row = (code, title, date, link_add, stamp)
+                sql = "insert into "+ self.tb +" (code, title, date, link_add, stamp) values (%s, %s, %s, %s, %s)"
+                sql_chk = "select `id` from %s where stamp = '%s'" %(self.tb, stamp)
                 try:
                     flag = self.cursor.execute(sql_chk)
                     if flag > 0:
