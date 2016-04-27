@@ -1,6 +1,6 @@
 #-*-coding:utf-8-*-
 # Author:    kuangggg
-#犀牛之星企业库信息的采集程序
+#信息的采集程序
 
 import MySQLdb
 import sys
@@ -9,7 +9,6 @@ import math
 import datetime
 import codecs
 import json
-
 reload(sys)
 sys.setdefaultencoding('utf-8')
 
@@ -309,13 +308,11 @@ class XiniuSpider():
                 else:
                     self.conn.commit()
     def run(self):
-        while True:
-            self.crawl()
-    def crawl(self):
         global block_xiniu
         block_xiniu = True
         start_time = datetime.datetime.now()
         stock_count = 0
+
         for i in range(1, self.parse_pages() + 1):
             url = 'http://www.ipo3.com/company-ajax_items/p-%s.html' % i
             response = self.req(url)
@@ -378,7 +375,6 @@ import time
 import os
 import ConfigParser
 import pickle
-
 class MyLogHandler(logging.Handler):
     def __init__(self, obj):
         logging.Handler.__init__(self)
@@ -614,6 +610,7 @@ class NeeqInfo():
             with codecs.open('conf.ini', encoding="utf-8-sig" ) as f:
                 conf.readfp(f)
                 self.path = conf.get("info_log", "path")
+                self.tb = conf.get("info_db", "tb")
             # 输入到文件的日志
             self.logger = logging.getLogger('info')
             self.logger.setLevel(logging.INFO)
@@ -624,11 +621,11 @@ class NeeqInfo():
             self.logger.info('配置加载完毕')
             try:
                 self.conn = MySQLdb.connect(
-                    host = conf.get("db", "host"),
-                    port = int(conf.get("db", "port")),
-                    user = conf.get("db", "user"),
-                    passwd = conf.get("db", "passwd"),
-                    db = conf.get("db", "db_name"),
+                    host = conf.get("info_db", "host"),
+                    port = int(conf.get("info_db", "port")),
+                    user = conf.get("info_db", "user"),
+                    passwd = conf.get("info_db", "passwd"),
+                    db = conf.get("info_db", "db_name"),
                     charset = 'utf8')
                 #数据库游标
                 self.cursor = self.conn.cursor()
@@ -702,8 +699,8 @@ class NeeqInfo():
                 date = row['uploadTimeString']
                 link_add = 'http://file.neeq.com.cn/upload'+row['filePath']
                 row = (code, title, date, link_add)
-                sql = "insert into gsgg (code, title, date, link_add) values (%s, %s, %s, %s)"
-                sql_chk = "select `id` from gsgg where link_add = '%s'" %link_add
+                sql = "insert into "+ self.tb +" (code, title, date, link_add) values (%s, %s, %s, %s)"
+                sql_chk = "select `id` from %s where link_add = '%s'" %(self.tb, link_add)
                 try:
                     flag = self.cursor.execute(sql_chk)
                     if flag > 0:
@@ -777,15 +774,12 @@ class info(wx.Panel):
         with codecs.open('conf.ini', encoding="utf-8-sig" ) as f:
             conf.readfp(f)
             self.log_path = conf.get("info_log", "path")
-            self.cron = conf.get("info_cron", "cron")
 
     def OnTimerEvent(self, e):
         thread.start_new_thread(self.clear, (e,))
     def clear(self, e):
         if len(self.text_info.GetValue()) > 1024:
             self.text_info.Clear()
-
-
     def onStart(self, e):
         if self.timer:
             return
@@ -805,10 +799,8 @@ class info(wx.Panel):
         self.timer.Stop()
         self.timer = None
     def _run(self, e):
-
         info = NeeqInfo()
         info.run()
-
     def onLog(self, e):
         win32api.ShellExecute(0, 'open', self.log_path, '', '', 1)
     def onClear(self, e):
