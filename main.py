@@ -54,10 +54,10 @@ class XiniuSpider():
             # 输入到文件的日志
             self.logger = logging.getLogger('spider')
             self.logger.setLevel(logging.INFO)
-            fh = logging.FileHandler(conf.get('xiniu_log', 'path'))
+            self.fh = logging.FileHandler(conf.get('xiniu_log', 'path'))
             formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            fh.setFormatter(formatter)
-            self.logger.addHandler(fh)
+            self.fh.setFormatter(formatter)
+            self.logger.addHandler(self.fh)
             try:
                 self.conn = MySQLdb.connect(
                     host = conf.get("db", "host"),
@@ -332,6 +332,7 @@ class XiniuSpider():
 
         """%(use_time, stock_count)
                     self.logger.info(msg)
+                    self.logger.removeHandler(self.fh)
                     quit()
                 name = div.xpath('ul/li[1]/div[1]/a/text()')[0].strip()
                 if div.xpath('ul/li[3]/text()'):
@@ -356,6 +357,7 @@ class XiniuSpider():
 
         """%(use_time,stock_count)
         self.logger.info(msg)
+        self.logger.removeHandler(self.fh)
     def __del__(self):
         self.conn.close()
         self.cursor.close()
@@ -614,10 +616,10 @@ class NeeqInfo():
             # 输入到文件的日志
             self.logger = logging.getLogger('info')
             self.logger.setLevel(logging.INFO)
-            fh = logging.FileHandler(self.path)
+            self.fh = logging.FileHandler(self.path)
             formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            fh.setFormatter(formatter)
-            self.logger.addHandler(fh)
+            self.fh.setFormatter(formatter)
+            self.logger.addHandler(self.fh)
             self.logger.info('配置加载完毕')
             try:
                 self.conn = MySQLdb.connect(
@@ -667,14 +669,16 @@ class NeeqInfo():
         import time
         global block_info
         block_info = True
-        start_time = datetime.datetime.now()
+        time_start = datetime.datetime.now()
         gg_count = 0
         stamp = '%.3f' % time.time()
         stamp = stamp[:10]+stamp[-3:]
-        now = time.strftime("%Y-%m-%d")
+        end_time = time.strftime("%Y-%m-%d")
+        dayAgo = (datetime.datetime.now() - datetime.timedelta(days = 29))
+        start_time = dayAgo.strftime("%Y-%m-%d")
         pages = self.parse_page()
         for page in range(1, pages+1):
-            url = 'http://www.neeq.cc/controller/GetDisclosureannouncementPage?type=1&company_cd=&key=&subType=0&startDate=2016-03-24&endDate='+now+'&queryParams=0&page='+str(page)+'&_='+stamp
+            url = 'http://www.neeq.cc/controller/GetDisclosureannouncementPage?type=1&company_cd=&key=&subType=0&startDate='+start_time+'&endDate='+end_time+'&queryParams=0&page='+str(page)+'&_='+stamp
             content = self.req(url)
             if content == False:
                 continue
@@ -682,8 +686,8 @@ class NeeqInfo():
             data = obj['disclosureInfos']
             for row in data:
                 if block_info == False:
-                    end_time = datetime.datetime.now()
-                    use_time = (end_time - start_time).seconds
+                    time_end = datetime.datetime.now()
+                    use_time = (time_end - time_start).seconds
                     msg = """
 -------------------------
 数据采集完毕
@@ -693,12 +697,13 @@ class NeeqInfo():
 
         """%(use_time, gg_count)
                     self.logger.info(msg)
+                    self.logger.removeHandler(self.fh)
                     quit()
                 code = row['companyCode']
                 title = row['titleFull']
                 date = row['uploadTimeString']
                 link_add = 'http://file.neeq.com.cn/upload'+row['filePath']
-                stamp = row['filePath'][-21:-11]
+                stamp = row['filePath'][-21:-4]
                 row = (code, title, date, link_add, stamp)
                 sql = "insert into "+ self.tb +" (code, title, date, link_add, stamp) values (%s, %s, %s, %s, %s)"
                 sql_chk = "select `id` from %s where stamp = '%s'" %(self.tb, stamp)
@@ -714,13 +719,13 @@ class NeeqInfo():
                             gg_count = gg_count + 1
                         except Exception as e:
                             self.conn.rollback()
-                            self.logger.error('['+code+']'+title+' - 入库失败')
+                            self.logger.error('['+code+']'+title+' - 入库失败 %s' % e)
                 except Exception as e:
                     self.logger.info("数据库出错 : %s" % e)
                     continue
 
-        end_time = datetime.datetime.now()
-        use_time = (end_time - start_time).seconds
+        time_end = datetime.datetime.now()
+        use_time = (time_end - time_start).seconds
         msg = """
 -------------------------
 数据采集完毕
@@ -730,6 +735,7 @@ class NeeqInfo():
 
         """%(use_time, gg_count)
         self.logger.info(msg)
+        self.logger.removeHandler(self.fh)
 #====================GUI
 
 class info(wx.Panel):
