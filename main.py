@@ -642,7 +642,9 @@ class NeeqInfo():
         now = time.strftime("%Y-%m-%d")
         stamp = '%.3f' % time.time()
         stamp = stamp[:10]+stamp[-3:]
-        url = 'http://www.neeq.cc/controller/GetDisclosureannouncementPage?type=1&company_cd=&key=&subType=0&startDate=2016-03-24&endDate='+now+'&queryParams=0&page=1&_='+stamp
+        dayAgo = (datetime.datetime.now() - datetime.timedelta(days = 29))
+        start_time = dayAgo.strftime("%Y-%m-%d")
+        url = 'http://www.neeq.cc/controller/GetDisclosureannouncementPage?type=1&company_cd=&key=&subType=0&startDate='+start_time+'&endDate='+now+'&queryParams=0&page=1&_='+stamp
         try:
             content = self.req(url)
             obj = json.loads(content)
