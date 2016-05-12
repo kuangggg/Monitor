@@ -470,12 +470,12 @@ class WeiboScan():
 
     #==========解析页面，要监听的内容
     def get_content(self):
-        url = 'http://weibo.cn/kuangggg'
+        url = 'http://weibo.cn'
         with open('cookie.txt', 'rb') as f:
             cookie = pickle.load(f)
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64; rv:43.0) Gecko/20100101 Firefox/43.0'}
         try:
-            html = requests.get(url, timeout=4, headers=headers, cookies=cookie, allow_redirects=False).content
+            html = requests.get(url, timeout=4, headers=headers, cookies=cookie).content
             selector = etree.HTML(html)
             name = selector.xpath('//a[@class="nk"]/text()')[0].strip()
             content = selector.xpath('//span[@class="ctt"]')[0]
